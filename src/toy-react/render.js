@@ -36,7 +36,14 @@ function commitWork(fiber) {
     return;
   }
 
-  const domParent = fiber.parent.dom;
+  let domParentFiber = fiber.parent
+
+  // 兼容函数组件无 dom 的情况
+  while (!domParentFiber.dom) {
+    domParentFiber = domParentFiber.parent
+  }
+
+  const domParent = domParentFiber.dom;
 
   if (fiber.effectTag === "PLACEMENT" && fiber.dom != null) {
     // 添加新节点
@@ -46,11 +53,21 @@ function commitWork(fiber) {
     updateDom(fiber.dom, fiber.alternate.props, fiber.props);
   } else if (fiber.effectTag === "DELETION") {
     // 删除节点
-    domParent.removeChild(fiber.dom);
+    commitDeletion(fiber, domParent)
   }
 
   commitWork(fiber.child);
   commitWork(fiber.sibling);
+}
+
+function commitDeletion(fiber, domParent) {
+  console.log(fiber, domParent);
+  if (fiber.dom) {
+    domParent.removeChild(fiber.dom)
+  } else {
+    // 兼容函数组件：向下寻找到有 child 的 DOM node
+    commitDeletion(fiber.child, domParent)
+  }
 }
 
 const isEvent = (key) => key.startsWith("on");
@@ -58,6 +75,7 @@ const isProperty = (key) => key !== "children" && !isEvent(key);
 const isNew = (prev, next) => (key) => prev[key] !== next[key];
 const isGone = (prev, next) => (key) => !(key in next);
 function updateDom(dom, prevProps, nextProps) {
+  // console.log(dom, prevProps, nextProps);
   //Remove old or changed event listeners
   Object.keys(prevProps)
     .filter(isEvent)
@@ -163,12 +181,14 @@ function reconcileChildren(wipFiber, elements) {
  * 3. return next unit of work
  */
 function performUnitOfWork(fiber) {
-  if (!fiber.dom) {
-    fiber.dom = createDom(fiber);
-  }
+  // console.log('fiber',fiber);
+  const isFunctionComponent = fiber.type instanceof Function
 
-  const elements = fiber.props.children;
-  reconcileChildren(fiber, elements);
+  if (isFunctionComponent) {
+    updateFunctionComponent(fiber)
+  } else {
+    updateHostComponent(fiber)
+  }
 
   // 返回下一个节点
   if (fiber.child) {
@@ -187,6 +207,21 @@ function performUnitOfWork(fiber) {
   }
 }
 
+function updateFunctionComponent(fiber) {
+  const children = [fiber.type(fiber.props)]
+
+  reconcileChildren(fiber, children)
+}
+
+function updateHostComponent(fiber) {
+  if (!fiber.dom) {
+    fiber.dom = createDom(fiber);
+  }
+
+  const elements = fiber.props.children;
+  reconcileChildren(fiber, elements);
+}
+
 function createDom(fiber) {
   const dom =
     fiber.type === "TEXT_ELEMENT"
@@ -199,6 +234,7 @@ function createDom(fiber) {
 }
 
 function render(element, container) {
+  // console.log('element',element);
   wipRoot = {
     dom: container,
     props: {
