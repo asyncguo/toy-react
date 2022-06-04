@@ -1,3 +1,22 @@
+let nextUnitOfWork = null
+
+function workLoop(deadline) {
+  let shouldYield = false
+  while(nextUnitOfWork && !shouldYield) {
+    nextUnitOfWork = performUnitOfWork(
+      nextUnitOfWork
+    )
+
+    shouldYield = deadline.timeRemaining() < 1
+  }
+
+  requestIdleCallback(workLoop)
+}
+
+function performUnitOfWork(nextUnitOfWork) {
+
+}
+
 function render(element, container) {
   const dom =
     element.type === "TEXT_ELEMENT"
@@ -20,5 +39,7 @@ function render(element, container) {
 
   container.appendChild(dom);
 }
+
+requestIdleCallback(workLoop)
 
 export default render;
