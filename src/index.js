@@ -1,17 +1,23 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import ToyReact from "./toy-react";
+/**
+ * NOTE: react 17 时 jsxRuntime 默认为 automatic，需更改设置 jsxRuntime 为 classic 即可
+ */
+/** @jsxRuntime classic */
+/** @jsx ToyReact.createElement */
+const App = () => {
+  const [state, setState] = ToyReact.useState(1)
+  // console.log(state, setState);
+  return (
+    <div title="toy">
+      <div>toy react</div>
+      <div>{state}</div>
+      <button onClick={() => {
+        setState(c => c + 1)
+      }}>add</button>
+    </div>
+  );
+};
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+console.log("App", App);
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+ToyReact.render(<App />, document.getElementById("root"));
