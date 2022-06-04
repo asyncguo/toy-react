@@ -1,7 +1,9 @@
 import createElement from './createElement'
+import render from './render'
 
 const ToyReact = {
-  createElement
+  createElement,
+  render
 }
 
 export default ToyReact
