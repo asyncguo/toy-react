@@ -1,4 +1,7 @@
+// 下一个工作单元
 let nextUnitOfWork = null
+// 进行中的 root 
+let wipRoot = null
 
 function workLoop(deadline) {
   // console.log('nextUnitOfWork', nextUnitOfWork);
@@ -11,7 +14,28 @@ function workLoop(deadline) {
     shouldYield = deadline.timeRemaining() < 1
   }
 
+  // 当没有 nextUnitOfWork 时，将整颗 fiber tree 交给 DOM
+  if (!nextUnitOfWork && wipRoot) {
+    commitRoot()
+  }
+
   requestIdleCallback(workLoop)
+}
+
+function commitRoot() {
+  commitWork(wipRoot.child)
+  wipRoot = null
+}
+
+function commitWork(fiber) {
+  if (!fiber) {
+    return
+  }
+
+  const domParent = fiber.parent.dom
+  domParent.appendChild(fiber.dom)
+  commitWork(fiber.child)
+  commitWork(fiber.sibling)
 }
 
 /**
@@ -22,10 +46,6 @@ function workLoop(deadline) {
 function performUnitOfWork(fiber) {
   if (!fiber.dom) {
     fiber.dom = createDom(fiber)
-  }
-
-  if (fiber.parent) {
-    fiber.parent.dom.appendChild(fiber.dom)
   }
 
   const elements = fiber.props.children
@@ -90,13 +110,14 @@ function createDom(fiber) {
 }
 
 function render(element, container) {
-  // 将 nextUnitOfWork 设置为 fiber tree 的根节点
-  nextUnitOfWork = {
+  wipRoot = {
     dom: container,
     props: {
       children: [element]
     }
   }
+
+  nextUnitOfWork = wipRoot
 
   requestIdleCallback(workLoop)
 }
